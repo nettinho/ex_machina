@@ -48,6 +48,7 @@ defmodule ExMachina.EctoStrategy do
     record
     |> cast_all_fields
     |> cast_all_embeds
+    |> cast_polymorphic_embeds
     |> cast_all_assocs
   end
 
@@ -100,6 +101,16 @@ defmodule ExMachina.EctoStrategy do
     end
   end
 
+  defp cast_polymorphic_embeds(%{__struct__: schema} = struct) do
+    schema
+    |> schema_polymorphic_embeds()
+    |> Enum.reduce(struct, fn embed_key, struct ->
+      casted_value = struct |> Map.get(embed_key)
+
+      Map.put(struct, embed_key, casted_value)
+    end)
+  end
+
   defp cast_all_assocs(%{__struct__: schema} = struct) do
     assoc_keys = schema_associations(schema)
 
@@ -140,11 +151,19 @@ defmodule ExMachina.EctoStrategy do
   end
 
   defp schema_non_virtual_fields(schema) do
-    schema.__schema__(:fields)
+    (schema_non_virtual_fields(schema) -- schema_embeds(schema)) --
+      schema_polymorphic_embeds(schema)
   end
 
   defp schema_embeds(schema) do
     schema.__schema__(:embeds)
+  end
+
+  defp schema_polymorphic_embeds(schema) do
+    Enum.filter(
+      schema.__schema__(:fields),
+      &match?({:parameterized, PolymorphicEmbed, _options}, schema.__schema__(:type, &1))
+    )
   end
 
   defp schema_associations(schema) do
