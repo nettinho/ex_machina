@@ -147,12 +147,12 @@ defmodule ExMachina.EctoStrategy do
   end
 
   defp schema_fields(schema) do
-    schema_non_virtual_fields(schema) -- schema_embeds(schema)
+    (schema_non_virtual_fields(schema) -- schema_embeds(schema)) --
+      schema_polymorphic_embeds(schema)
   end
 
   defp schema_non_virtual_fields(schema) do
-    (schema_non_virtual_fields(schema) -- schema_embeds(schema)) --
-      schema_polymorphic_embeds(schema)
+    schema.__schema__(:fields)
   end
 
   defp schema_embeds(schema) do
